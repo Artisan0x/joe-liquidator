@@ -21,6 +21,10 @@
     "send": "hardhat send",
     "generate": "hardhat generate",
     "account": "hardhat account",
-    "etherscan-verify": "hardhat etherscan-verify --api-key PSW8C433Q667DVEX5BCRMGNAH9FSGFZ7Q8"
+    "etherscan-verify": "hardhat etherscan-verify --api-key PSW8C433Q667DVEX5BCRMGNAH9FSGFZ7Q8",
+    "deploy:mainnet": "npx hardhat run scripts/sample-script.js --network mainnet"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
   }
 }

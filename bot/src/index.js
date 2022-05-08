@@ -1,10 +1,17 @@
 const ethers = require('ethers');
-const fetch = require('isomorphic-unfetch');
+// const Avalanche = require('avalanche').Avalanche;
+// const fetch = require('isomorphic-unfetch');
+const path = require('path')
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 const { createClient, gql } = require('@urql/core');
 
 const JOE_LIQUIDATOR_ABI = require('./abis/JoeLiquidator');
-
 const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY } = process.env;
+
+const nodeURL = 'https://api.avax.network/ext/bc/C/rpc';
+// const chainId = 43113;
+// const avalanche = new Avalanche('api.avax-test.network', undefined, 'https', chainId);
+// const cchain = avalanche.CChain();
 
 const INTERVAL_IN_MS = 10000;
 
@@ -124,8 +131,11 @@ const findBorrowAndSupplyPosition = (tokens) => {
  */
 const getJoeLiquidatorContract = () => {
   // Following https://medium.com/coinmonks/hello-world-smart-contract-using-ethers-js-e33b5bf50c19
-  const provider = ethers.getDefaultProvider();
-  const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
+  // const provider = ethers.getDefaultProvider();
+  const HTTPSProvider = new ethers.providers.JsonRpcProvider(nodeURL);
+  // console.log({ HTTPSProvider })
+  // const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
+  const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, HTTPSProvider);
   return new ethers.Contract(JOE_LIQUIDATOR_CONTRACT_ADDRESS, JOE_LIQUIDATOR_ABI, wallet);
 }
 
@@ -154,12 +164,22 @@ const tryLiquidateAccount = async (account) => {
     `on ${jRepayTokenSymbol} and supply position on ${jSeizeTokenSymbol}`
   );
 
+  
   const joeLiquidatorContract = getJoeLiquidatorContract();
-  await joeLiquidatorContract.liquidate(
+  const gasLimit = await joeLiquidatorContract.estimateGas.liquidate(
     borrowerToLiquidateAddress,
     jRepayTokenAddress,
     jSeizeTokenAddress
   );
+  console.log({ gasLimit })
+  await joeLiquidatorContract.liquidate(
+    borrowerToLiquidateAddress,
+    jRepayTokenAddress,
+    jSeizeTokenAddress,
+    { gasLimit }
+  );
+
+  console.log('🎉 Finished liquidating account!');
 }
 
 /**
@@ -188,14 +208,13 @@ console.log("🔧 Bot starting up...");
 console.log(`🔁 Bot will query the subgraph every ${INTERVAL_IN_MS / 1000} seconds to search for liquidatable accounts...\n`);
 
 if (!JOE_LIQUIDATOR_CONTRACT_ADDRESS) {
-  console.log("🚨 Stopping because the `JOE_LIQUIDATOR_CONTRACT_ADDRESS` environment variable isn't set.")
-  return;
+  console.log("🚨 Stopping because the `JOE_LIQUIDATOR_CONTRACT_ADDRESS` environment variable isn't set.");
 }
 
 if (!WALLET_PRIVATE_KEY) {
-  console.log("🚨 Stopping because the `WALLET_PRIVATE_KEY` environment variable isn't set.")
-  return;
+  console.log("🚨 Stopping because the `WALLET_PRIVATE_KEY` environment variable isn't set.");
 }
 
 /// Query the subgraph and attempt to perform liquidation every INTERVAL_IN_MS
+run();
 setInterval(run, INTERVAL_IN_MS);
