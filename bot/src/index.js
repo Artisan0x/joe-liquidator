@@ -6,7 +6,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 const { createClient, gql } = require('@urql/core');
 
 const JOE_LIQUIDATOR_ABI = require('./abis/JoeLiquidator');
-const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY, MORALIS_SERVER_URL, MORALIS_APP_ID, MORALIS_MASTER_KEY  } = process.env;
+const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY } = process.env;
 
 const INTERVAL_IN_MS = 10000;
 const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
