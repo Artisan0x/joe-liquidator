@@ -1,23 +1,21 @@
-const ethers = require('ethers');
+// const ethers = require('ethers');
 // for some reason we need fetch or it doesn't work
 const fetch = require('isomorphic-unfetch');
 const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 const { createClient, gql } = require('@urql/core');
-// const Moralis = require('moralis/node')
+const Moralis = require('moralis/node')
 
 const JOE_LIQUIDATOR_ABI = require('./abis/JoeLiquidator');
 const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY, MORALIS_SERVER_URL, MORALIS_APP_ID, MORALIS_MASTER_KEY  } = process.env;
 
 const INTERVAL_IN_MS = 10000;
-const avaxChainID = 43114;
-const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
 
 /// From https://thegraph.com/hosted-service/subgraph/traderjoe-xyz/lending?query=underwater%20accounts
 const TRADER_JOE_LENDING_GRAPH_URL = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/lending';
 const UNDERWATER_ACCOUNTS_QUERY = gql`
   query {
-    accounts(where: {health_gt: 0, health_lt: 1, totalBorrowValueInUSD_gt: 50}) {
+    accounts(where: {health_gt: 0, health_lt: 1, totalBorrowValueInUSD_gt: 0}) {
       id
       health
       totalBorrowValueInUSD
@@ -127,33 +125,32 @@ const findBorrowAndSupplyPosition = (tokens) => {
 /**
  * Returns a `JoeLiquidator` contract to interact with.
  */
-const getJoeLiquidatorContract = () => {
-  // Following https://medium.com/coinmonks/hello-world-smart-contract-using-ethers-js-e33b5bf50c19
-  // const provider = ethers.getDefaultProvider();
-  const provider = new ethers.providers.JsonRpcProvider(avaxURL)
-  const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
-  return new ethers.Contract(JOE_LIQUIDATOR_CONTRACT_ADDRESS, JOE_LIQUIDATOR_ABI, wallet);
-}
-
-// const liquidateAccount = async ({ borrowerToLiquidateAddress, jRepayTokenAddress, jSeizeTokenAddress }) => {
-//   await Moralis.start({ serverUrl: MORALIS_SERVER_URL, appId: MORALIS_APP_ID, masterKey: MORALIS_MASTER_KEY });
-//   // const web3 = Moralis.web3ByChain("43114")
-//   // const web3 = Moralis.web3ByChain("43114")
-//   await Moralis.enableWeb3({ chainId: 43114, privateKey: WALLET_PRIVATE_KEY });
-//   // await Moralis.enableWeb3({ privateKey: WALLET_PRIVATE_KEY });
-//   // await Moralis.authenticate();
-
-//   const options = {
-//     chain: "avalanche",
-//     address: JOE_LIQUIDATOR_CONTRACT_ADDRESS,
-//     function_name: "liquidate",
-//     abi: JOE_LIQUIDATOR_ABI,
-//     params: { _borrowerToLiquidateAddress: borrowerToLiquidateAddress, _jRepayTokenAddress: jRepayTokenAddress, _jSeizeTokenAddress: jSeizeTokenAddress },
-//   };
-
-//   const response = await Moralis.executeFunction(options);
-//   console.log({ response });
+// const getJoeLiquidatorContract = () => {
+//   // Following https://medium.com/coinmonks/hello-world-smart-contract-using-ethers-js-e33b5bf50c19
+//   const provider = ethers.getDefaultProvider();
+//   const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
+//   return new ethers.Contract(JOE_LIQUIDATOR_CONTRACT_ADDRESS, JOE_LIQUIDATOR_ABI, wallet);
 // }
+
+const liquidateAccount = async ({ borrowerToLiquidateAddress, jRepayTokenAddress, jSeizeTokenAddress }) => {
+  await Moralis.start({ serverUrl: MORALIS_SERVER_URL, appId: MORALIS_APP_ID, masterKey: MORALIS_MASTER_KEY });
+  // const web3 = Moralis.web3ByChain("43114")
+  const web3 = Moralis.web3ByChain("43114")
+  // await Moralis.enableWeb3({ chainId: 43114, privateKey: WALLET_PRIVATE_KEY });
+  // await Moralis.enableWeb3({ privateKey: WALLET_PRIVATE_KEY });
+  // await Moralis.authenticate();
+
+  const options = {
+    chain: "avalanche",
+    address: JOE_LIQUIDATOR_CONTRACT_ADDRESS,
+    function_name: "liquidate",
+    abi: JOE_LIQUIDATOR_ABI,
+    params: { _borrowerToLiquidateAddress: borrowerToLiquidateAddress, _jRepayTokenAddress: jRepayTokenAddress, _jSeizeTokenAddress: jSeizeTokenAddress },
+  };
+
+  const response = await Moralis.executeFunction(options);
+  console.log({ response });
+}
 
 /**
  * Tries to liquidate an account by searching for a borrow position to repay and
@@ -180,23 +177,23 @@ const tryLiquidateAccount = async (account) => {
     `on ${jRepayTokenSymbol} and supply position on ${jSeizeTokenSymbol}`
   );
 
-  // await liquidateAccount({ borrowerToLiquidateAddress, jRepayTokenAddress, jSeizeTokenAddress });
+  await liquidateAccount({ borrowerToLiquidateAddress, jRepayTokenAddress, jSeizeTokenAddress });
   
-  const joeLiquidatorContract = getJoeLiquidatorContract();
-  const gasLimit = await joeLiquidatorContract.estimateGas.liquidate(
-    borrowerToLiquidateAddress,
-    jRepayTokenAddress,
-    jSeizeTokenAddress
-  );
+  // const joeLiquidatorContract = getJoeLiquidatorContract();
+  // const gasLimit = await joeLiquidatorContract.estimateGas.liquidate(
+  //   borrowerToLiquidateAddress,
+  //   jRepayTokenAddress,
+  //   jSeizeTokenAddress
+  // );
   // console.log({ gasLimit })
-  await joeLiquidatorContract.liquidate(
-    borrowerToLiquidateAddress,
-    jRepayTokenAddress,
-    jSeizeTokenAddress,
-    { gasLimit }
-  );
+  // await joeLiquidatorContract.liquidate(
+  //   borrowerToLiquidateAddress,
+  //   jRepayTokenAddress,
+  //   jSeizeTokenAddress,
+  //   { gasLimit }
+  // );
 
-  console.log('🎉 Finished liquidating account!');
+  // console.log('🎉 Finished liquidating account!');
 }
 
 /**
@@ -211,7 +208,6 @@ const run = async () => {
 
       const { data: { accounts } } = result;
       for (const account of accounts) {
-        console.log({ account })
         await tryLiquidateAccount(account);
       }
 
