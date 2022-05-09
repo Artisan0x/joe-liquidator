@@ -11,12 +11,13 @@ const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY, MORALIS_SERVER_URL,
 const INTERVAL_IN_MS = 10000;
 const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
 const profitThreshold = 4;
+const minimumBorrowValue = 5;
 
 /// From https://thegraph.com/hosted-service/subgraph/traderjoe-xyz/lending?query=underwater%20accounts
 const TRADER_JOE_LENDING_GRAPH_URL = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/lending';
 const UNDERWATER_ACCOUNTS_QUERY = gql`
   query {
-    accounts(where: {health_gt: 0, health_lt: 1, totalBorrowValueInUSD_gt: 5}) {
+    accounts(where: {health_gt: 0, health_lt: 1, totalBorrowValueInUSD_gt: ${minimumBorrowValue}}) {
       id
       health
       totalBorrowValueInUSD
