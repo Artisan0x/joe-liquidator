@@ -201,8 +201,7 @@ const run = async () => {
         await tryLiquidateAccount(account);
       }
 
-      console.log(`✨ Finished searching through accounts... Restarting in 60 seconds\n`);
-      setTimeout(run, 600000)
+      console.log(`✨ Finished searching through accounts...\n`);
     })
     .catch((err) => {
       console.log('Error performing liquidation: ', { err });
