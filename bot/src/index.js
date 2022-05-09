@@ -11,7 +11,7 @@ const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY, MORALIS_SERVER_URL,
 const INTERVAL_IN_MS = 10000;
 const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
 const profitThreshold = 4;
-const minimumBorrowValue = 5;
+const minimumBorrowValue = 20;
 
 /// From https://thegraph.com/hosted-service/subgraph/traderjoe-xyz/lending?query=underwater%20accounts
 const TRADER_JOE_LENDING_GRAPH_URL = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/lending';
@@ -201,7 +201,8 @@ const run = async () => {
         await tryLiquidateAccount(account);
       }
 
-      console.log(`✨ Finished searching through accounts...\n`);
+      console.log(`✨ Finished searching through accounts... Restarting in 60 seconds\n`);
+      setTimeout(run, 600000)
     })
     .catch((err) => {
       console.log('Error performing liquidation: ', { err });
