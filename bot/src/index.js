@@ -10,6 +10,7 @@ const { JOE_LIQUIDATOR_CONTRACT_ADDRESS, WALLET_PRIVATE_KEY, MORALIS_SERVER_URL,
 
 const INTERVAL_IN_MS = 10000;
 const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
+const profitThreshold = 4;
 
 /// From https://thegraph.com/hosted-service/subgraph/traderjoe-xyz/lending?query=underwater%20accounts
 const TRADER_JOE_LENDING_GRAPH_URL = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/lending';
@@ -145,14 +146,16 @@ const tryLiquidateAccount = async (account) => {
     return;
   }
 
+  console.log("------------------------------------------------------------------------------------------------------");
   console.log("🤩 Found underwater account to liquidate!");
   const { borrowPositionToRepay, supplyPositionToSeize } = borrowAndSupplyPosition;
   const accountBorrow = borrowPositionToRepay.borrowBalanceUnderlying;
   const accountSupply = supplyPositionToSeize.supplyBalanceUnderlying;
   console.log(`💵 Account Borrow: ${accountBorrow} | Supply: ${accountSupply}`)
 
-  if (accountBorrow > accountSupply - 4) {
-    console.log(`❌ Account Borrow (${accountBorrow}) is too much higher than Supply (${accountSupply}). Moving on...`)
+  if (accountBorrow > accountSupply - profitThreshold) {
+    console.log(`❌ Account Borrow (${accountBorrow}) is too much higher than Supply (${accountSupply}).`)
+    console.log('➡️ Moving on...')
     return
   }
 
