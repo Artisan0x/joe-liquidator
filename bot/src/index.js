@@ -12,6 +12,8 @@ const INTERVAL_IN_MS = 10000;
 const avaxURL = 'https://api.avax.network/ext/bc/C/rpc';
 const profitThreshold = 4;
 const minimumBorrowValue = 20;
+let liquidationRuns = 0;
+let issueWallets = [];
 
 /// From https://thegraph.com/hosted-service/subgraph/traderjoe-xyz/lending?query=underwater%20accounts
 const TRADER_JOE_LENDING_GRAPH_URL = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/lending';
@@ -139,6 +141,7 @@ const getJoeLiquidatorContract = () => {
  * supply position to seize.
  */
 const tryLiquidateAccount = async (account) => {
+  if (issueWallets.includes(account.id)) return;
   const { tokens } = account;
 
   const borrowAndSupplyPosition = findBorrowAndSupplyPosition(tokens);
@@ -155,6 +158,7 @@ const tryLiquidateAccount = async (account) => {
   console.log(`💵 Account Borrow: ${accountBorrow} | Supply: ${accountSupply}`)
 
   if (accountBorrow > accountSupply - profitThreshold) {
+    issueWallets.push(account.id)
     console.log(`❌ Account Borrow (${accountBorrow}) is too much higher than Supply (${accountSupply}).`)
     console.log('➡️ Moving on...')
     return
@@ -195,13 +199,22 @@ const run = async () => {
     .toPromise()
     .then(async (result) => {
       console.log("🔎 Searching for account to liquidate...");
+      if (liquidationRuns >= 10) {
+        issueWallets = [];
+        liquidationRuns = 0;
+      }
 
       const { data: { accounts } } = result;
       for (const account of accounts) {
-        await tryLiquidateAccount(account);
+        try {
+          await tryLiquidateAccount(account);
+        } catch {
+          issueWallets.push(account.id);
+        }
       }
 
       console.log(`✨ Finished searching through accounts...\n`);
+      liquidationRuns++;
     })
     .catch((err) => {
       console.log('Error performing liquidation: ', { err });
